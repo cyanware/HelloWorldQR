@@ -59,7 +59,7 @@ struct ContentView: View {
         // Draw white background circle
         let circlePath = UIBezierPath(
             arcCenter: CGPoint(x: logoOrigin.x + logoSize/2, y: logoOrigin.y + logoSize/2),
-            radius: logoSize/2,
+            radius: logoSize/2 * 1.25,
             startAngle: 0,
             endAngle: .pi * 2,
             clockwise: true
