@@ -7,10 +7,24 @@
 //
 
 import SwiftUI
+import CoreImage.CIFilterBuiltins
 
 struct ContentView: View {
+    func generateQRCode(from text: String) -> UIImage {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        
+        filter.message = Data(text.utf8)
+        
+        if let outputImage = filter.outputImage,
+           let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
+            return UIImage(cgImage: cgImage)
+        }
+        
+        return UIImage(systemName: "xmark.circle") ?? UIImage()
+    }
+    
     var body: some View {
-        // Display a QR code with the text "Hello, World!"
         Image(uiImage: generateQRCode(from: "Hello, world!"))
             .interpolation(.none)
             .resizable()
