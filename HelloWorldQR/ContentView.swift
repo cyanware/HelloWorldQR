@@ -9,41 +9,77 @@
 import SwiftUI
 import CoreImage.CIFilterBuiltins
 
-/// A view that displays a QR code generated from a text string
 struct ContentView: View {
-    /// Generates a QR code image from the provided text
-    /// - Parameter text: The string to encode in the QR code
-    /// - Returns: A UIImage containing the generated QR code, or a fallback error image if generation fails
+    @State private var text = ""
+    @State private var foregroundColor = Color.black
+    @State private var backgroundColor = Color.white
+    @State private var correctionLevel = "M"
+    
+    // QR code correction levels
+    let correctionLevels = ["L", "M", "Q", "H"]
+    
     func generateQRCode(from text: String) -> UIImage {
-        // Create a Core Image context for image processing
         let context = CIContext()
-        // Initialize the QR code generator filter
         let filter = CIFilter.qrCodeGenerator()
         
-        // Convert the input text to Data and set it as the filter's message
+        // Configure QR code parameters
         filter.message = Data(text.utf8)
+        filter.correctionLevel = correctionLevel
         
-        // Try to generate the QR code image
-        if let outputImage = filter.outputImage,
-           let cgImage = context.createCGImage(outputImage, from: outputImage.extent) {
-            return UIImage(cgImage: cgImage)
+        guard let outputImage = filter.outputImage else {
+            return UIImage(systemName: "xmark.circle") ?? UIImage()
         }
         
-        // Return an error icon if QR code generation fails
-        return UIImage(systemName: "xmark.circle") ?? UIImage()
+        // Scale the QR code for better resolution
+        let scaledImage = outputImage.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        
+        // Apply custom colors
+        let colorFilter = CIFilter.falseColor()
+        colorFilter.inputImage = scaledImage
+        colorFilter.color0 = CIColor(color: UIColor(backgroundColor))
+        colorFilter.color1 = CIColor(color: UIColor(foregroundColor))
+        
+        guard let coloredImage = colorFilter.outputImage,
+              let cgImage = context.createCGImage(coloredImage, from: coloredImage.extent) else {
+            return UIImage(systemName: "xmark.circle") ?? UIImage()
+        }
+        
+        return UIImage(cgImage: cgImage)
     }
     
     var body: some View {
-        // Display the generated QR code
-        Image(uiImage: generateQRCode(from: "Hello, world!"))
-            // Disable image interpolation for sharper QR code
-            .interpolation(.none)
-            // Make the image resizable
-            .resizable()
-            // Maintain aspect ratio
-            .scaledToFit()
-            // Set fixed dimensions for the QR code
-            .frame(width: 200, height: 200)
+        VStack(spacing: 20) {
+            Image(uiImage: generateQRCode(from: text))
+                .interpolation(.none)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 200, height: 200)
+            
+            TextField("Enter text", text: $text)
+                .textFieldStyle(.roundedBorder)
+                .padding(.horizontal)
+            
+            // Color pickers
+            ColorPicker("Foreground Color", selection: $foregroundColor)
+                .padding(.horizontal)
+            
+            ColorPicker("Background Color", selection: $backgroundColor)
+                .padding(.horizontal)
+            
+            // Correction level picker
+            Picker("Correction Level", selection: $correctionLevel) {
+                ForEach(correctionLevels, id: \.self) { level in
+                    Text(level).tag(level)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal)
+            
+            ShareLink(item: Image(uiImage: generateQRCode(from: text)), 
+                     preview: SharePreview("QR Code", image: Image(uiImage: generateQRCode(from: text))))
+                .buttonStyle(.bordered)
+        }
+        .padding()
     }
 }
 
